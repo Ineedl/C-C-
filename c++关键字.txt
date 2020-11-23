@@ -66,6 +66,60 @@ friend										//声明为有元函数或有元类
 explicit									//显式方式声明,一般用于构造函数
 
 template									//声明模板类和模板函数
+											template<class T,typename T,class T>
+											使用typename和class的区别:在定义类模板或是函数模板时是一样的,但是某些时候typename有特殊作用
+											另外 模板参数分类型参数和非类型参数
+											非类型参数可以使用任何类型,包括引用,指针,函数指针,void类型指针等,还有指针的引用,成员函数指针等
+											例子:
+											函数模板例子:
+											template<typename T, void (*f) (T &v)>
+											void foreach(T array[], unsigned size) {
+												for (unsigned i = 0; i < size; ++i)
+													f(array[i]);
+											}
+											类模板例子:
+											template<char number,class mode>
+											class trueA{
+												public:
+													mode t;
+													int a[(int)number];
+												public:
+													trueA(int p){
+														int i;
+														for(i=0;i<(int)number;i++)
+															this->a[i]=p;
+													}
+
+											};
+											
+											初始化函数模板:
+											
+											对于上面的类模板例子:
+											tureA可以这样new一个对象
+											
+											trueA<'a',string> *A=new trueA<'a',string>(5);
+											
+											对于上述函数模板例子
+											
+											int array[] = {1, 2, 3, 4, 5, 6, 7, 8};
+											foreach<int, print<int>>(array, 8);
+											
+											注意,无论什么时候,用new初始化模板时都要在前面和后面加上类型声明
+											
+											模板类在声明的时候也要加模板参数
+											例:
+												template <typename T,class B>class A;
+												int a;
+												template <typename T,class B>
+												class A
+												{
+													public:
+														B b;
+														T t;
+													A(){}
+												};
+											
+
 
 mutable										//声明变量可改变,在const成员函数中也可以使用并改变
 

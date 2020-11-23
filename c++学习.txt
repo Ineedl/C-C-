@@ -64,13 +64,13 @@
 
   一般调用该名函数时 用const修饰对象调用的为const修饰的常成员函数 没用的就调用的那个没有const修饰的函数。
   
-  const修饰的常成员函数相当于里面的this指针被const修饰，无法修改所指内存中内容
+  1.const修饰的常成员函数相当于里面的this指针被const修饰，无法修改所指内存中内容
   
-  const修饰成员函数时放在函数后面，修饰返回值时放在函数前面
+	const修饰成员函数时放在函数后面，修饰返回值时放在函数前面
   
-  const修饰的对象,若为内容不能修改(例如const line Line=line(1,2))只能调用常成员函数，
+  2.const修饰的对象,若为内容不能修改(例如const line Line=line(1,2))只能调用常成员函数，
   
-  const修饰的对象,若为指针不能修改(例如Line line(1,2); Line* const p=&line;)则常成员函数和其他成员函数也可以调用
+	const修饰的对象,若为指针不能修改(例如Line line(1,2); Line* const p=&line;)则常成员函数和其他成员函数也可以调用
   
   对象的常引用就相当于该对象的常对象(内存空间还是原来的)
   
@@ -141,6 +141,30 @@
 
 16.虚函数被重写后,重写后在子类的函数依旧是虚函数(自动添加virtual),而且析构函数也是同样道理，c++中的类如果要被继承，就应该把析构函数设置为虚函数
 
+	因为如果一个基类指针指向用 new 运算符动态生成的派生类对象，释放该对象时是通过释放该基类指针来完成的，这就可能导致程序不正确。
+	
+	例：
+	class CShape  //基类
+	{
+	public:
+		~CShape() { cout << "CShape::destrutor" << endl; }
+	};
+	class CRectangle : public CShape  //派生类
+	{
+	public:
+		int w, h;  //宽度和高度
+		~CRectangle() { cout << "CRectangle::destrutor" << endl; }
+	};
+	int main()
+	{
+		CShape* p = new CRectangle();
+		delete p;							//此时调用的是CShape的析构函数,虽然声明的是CShape类对象,但是实际上还是CRectangle类,
+											//这时调用CShape的析构函数,除非是有意而为,不然非常不符合逻辑
+		return 0;	
+	}
+	
+	如果上述例子中CShape类的析构函数声明为虚函数,则delete p时使用的是CRectangle的析构函数,这才符合逻辑
+
 17.explicit关键字用来表明构造函数是显式方式显示的。explici关键字一般用来标识构造函数,让其必须为显式方式声明.
 	例子:A类构造函数为A(int c);
 		 在创建A类时可以A a=10;(自动使用了隐式转换,会自动执行构造函数把10给c 然后a变为一个A类对象)
@@ -189,8 +213,8 @@ private:
 };
 初始化A后运行后会发现n1为n2未初始化时的值+2,未初始化时变量的值可能为任意值
 
-24.c++类初始化时只会对和全局成员的成员变量初始化值为0,对于其他变量初始化为未知
-上述例子把a的初始化放在外面会发现n1=0+2,因为a声明为全局,n1和n2一开始都为0
+24.c++类初始化时只会把全局对象的成员变量初始化值为0,对于其他变量初始化为未知(这个情况只针对于没有用new初始化的对象)
+上述例子把类A对象的初始化放在所有函数外面会发现n1=0+2,因为此时类A对象声明为全局,n1和n2一开始都为0
 
 25.c++销毁对象和变量时(自动在栈中销毁),会按定义的顺序从尾到头销毁对象和变量(栈的后进先出)
 
@@ -257,15 +281,19 @@ private:
 	其他两个相同,但是const_cast只能在非const和const间转换
 
 
-32.拷贝构造函数参数必须是const T& t的原因(设T为某种类,可以根据需求不加const但是一定要加&)
+32.可以参考第73条
+	拷贝构造函数参数必须是const T& t的原因(设T为某种类,可以根据需求不加const但是一定要加&)
 	要用&的原因:会无限递归创建下去,假设为参数为(const T t)不加&时是值传递,(假设传入变量为a),那么以a为对象,执行A b = a;时,会调用b的拷贝构造函数,此时实参a会被赋值给形参other,
 				相当于语句A other = a;又会继续调用other的拷贝构造函数,将a赋值给对象other的拷贝构造函数的形参othern,如此一来,就会形成一个递归操作而且没有结束条件.
 				而传入别名就不会让形参调用构造而循环的调用构造.
 		
 	要加const的原因:	1.因为const的特性,可以保证某些数据的安全
-						2.当函数返回一个对象时，编译器会生成一个临时对象返回,但是这个临时对象具有const的特性,故函数以对象作为返回值时会调用拷贝函数,而这个临时对象被传过去
+						2.当函数返回一个对象时，编译器会生成一个临时对象返回,但是这个临时对象具有const的特性。
+						
+						  函数以对象作为返回值时会调用拷贝函数(传给调用该函数的函数时(假设该函数为函数A,调用函数A的函数为函数B),
+						  函数B会使用该临时对象创建一个新的对象,而因为临时对象有const特性,而其拷贝函数无const属性(有 没有被const修饰的 引用类型的 形参 的函数,其不能在对应位置传入被const修饰的参数)
 	 
-	用拷贝构造函数有三种：
+	自动用拷贝构造函数有三种情况：
 	1、拿对象初始化对象
 
 	2、拿对象作为函数的参数		因为形参要被创建出来，这个构造函数不加const也没关系
@@ -274,14 +302,23 @@ private:
 								这种例子是直接
 								TestInformation test(TestInformation T)
 								{
-									return TestInformation();			//无数据载体变量，直接新建一个对象并返回对象，就会建立一个临时变量
+									return TestInformation();			//无数据载体变量，直接新建一个对象并返回对象，就会建立一个临时变量把数据传出去
 								}
 								而像这种有载体的数据例如
 										TestInformation test(TestInformation T)
 										{
-											TestInformation B=T;		//B作为数据载体对象，返回时不会再建立临时变量
+											TestInformation B=T;		//B作为数据载体对象,返回时也会建立临时变量,因为出了函数后,局部对象全部被销毁了,需要一个变量传递数据
 											return B;
 										}
+	对于是否有时候拷贝构造函数不加const,一般99.9%的情况都是建议加
+	
+	程序中有以下几种情况时 拷贝构造函数不用加const:
+	
+	1.程序中完全无以该类为返回值的函数
+	
+	2.程序中完全无以该类引用的const形式为形参的函数
+
+
 
 33.c++ The Rule of Three规则:
 							如果你需要自己显式地声明一个类的析构函数，那么你可能也需要同时显式地声明它的拷贝构造函数以及拷贝赋值函数(重载=),而不能用default来默认该函数;
@@ -627,4 +664,99 @@ private:
 	}
 	在C++中会出错,C中只会出现警告
 	C++中每次指针间类型转换都要显示说明,否则会出错。而C中可以任意转换,只会警告。
-		
+
+72.c++可以有成员函数指针,不管是静态还是非静态
+	无论如何定义成员函数指针(静态还是非静态),都是类名::函数名,但是静态函数指针的调用不需要对象,而非静态需要
+	说实在的非静态成员函数指针的使用像换了个别名,不是很实用.
+	
+	例子:
+	#include <stdio.h>
+	#include <iostream>
+	class MyClass {
+		public:
+			static int FunA(int a, int b) {
+				cout << "call FunA" << endl;
+				return a + b;
+			}
+		  
+			void FunB() {
+				cout << "call FunB" << endl;
+			}
+		  
+			void FunC() {
+				cout << "call FunC" << endl;
+			}
+		  
+			int pFun1(int (*p)(int, int), int a, int b) {
+				return (*p)(a, b);
+			}
+		  
+			void pFun2(void (MyClass::*nonstatic)()) {
+				(this->*nonstatic)();
+			}
+	};
+	int main() {
+		MyClass* obj = new MyClass;
+		// 静态函数指针的使用
+		int (*pFunA)(int, int) = &MyClass::FunA;
+		cout << pFunA(1, 2) << endl;
+		 
+		// 成员函数指针的使用
+		void (MyClass::*pFunB)() = &MyClass::FunB;
+		(obj->*pFunB)();
+		 
+		// 通过 pFun1 只能调用静态方法
+		obj->pFun1(&MyClass::FunA, 1, 2);
+		 
+		// 通过 pFun2 就是调用成员方法
+		obj->pFun2(&MyClass::FunB);
+		obj->pFun2(&MyClass::FunC);
+	 
+		delete obj;
+		return 0;
+	}
+
+73.c++当引用作为函数参数时,若该引用参数未用const声明,那么将不可以传入右值给该引用
+	例子:
+		#include <iostream>
+	using namespace std;
+	class A
+	{
+	public:
+		A():n2(0),n1(n2 + 2){}
+		A(int &a){														//		2处
+			this->n1=a;
+			this->n2=a;
+		}
+		~A(){
+		   
+		}
+
+		void print()
+		{
+			cout << "n1:" << n1 << " ,  n2:" << n2 << endl;			//n1的值是n2未初始化前的值+2
+		}
+
+	private:
+		int n1;
+		int n2;
+	};
+	A a;
+	int main()
+	{
+	   //int p=6;
+	   //a.print();
+	   A b=A(6);														//		1处
+	}
+	该例子中,1处会报错,若要使其正确,必须在2处加上const
+	
+	原因:
+	
+	数据传入形式参数前,若传入一个右值,则会现有一个临时变量存放,但是一般这个临时变量程序员无法操作,而且操作了也无意义,
+	所以若要传入右值,则使用const typename &valuename
+	数据传入形式参数前,若传入一个变量,则一般编译器会认为该变量会在函数中修改(修改对应引用后也会修改对应变量),故一般加上const来防止以外的修改
+	
+	关于对象引用作为参数的情况:
+	过于复杂,建议在函数中对象引用参数前都加上const修饰(包括类拷贝函数),一般也为了防止被拷贝的类被修改,都会加
+	
+	
