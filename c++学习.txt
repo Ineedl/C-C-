@@ -795,3 +795,131 @@ private:
 	若	C *c=new C();
 	直接使用c->at使用的是子类C的父类B中的变量at
 	若声明	c->A::at	使用的是子类C的祖辈类A中的变量at
+
+75.c++纯虚函数必须重写,但是虚函数不一定要重修,
+	在接口类中可以定义若干空的纯虚函数来表示让继承的类有选择他们觉得有兴趣的虚函数(方法)来重写
+	例:
+		class interface
+		{
+			public:
+				virtual void OpenDoor(){}
+				virtual void OpenNiceDoor(){}
+				virtual viod OpenGoodDoor(){}
+				
+				virtual void SelectSQL()=0;
+		};
+		
+76.C++重写和重载后 函数访问类型可以不一样,
+	重载必须函数名相同,参数列表不同,	但是返回值类型不同但参数列表相同的重载不支持。
+	重写必须返回值类型是要重写函数的返回值类型相关的类(继承下来的或是其祖辈类),参数列表必须相同。
+
+77.g++和gcc编译时-L只是会让你指定库去解析程序中未定义符号,
+	但是运行时,不一定会去-L指定目录中寻找库,要看gcc默认程序运行时寻找库路径
+	例:
+		程序运行时会去/usr/lib64等目录寻找库文件,
+		此时库文件不在这些目录里,	文件在/usr/local/lib64 叫libevent.so
+		编译时裸编译会报错,未定义符号	g++/gcc main.cpp/main.c -o main.out
+		指定动态库路径,编译成功			g++/gcc main.cpp/main.c -o main.out -levent -L/usr/local/lib64
+		运行							main.out
+										报错,没有找到库文件libevent.so
+		复制libevent.so到/usr/local/lib64,程序可以运行
+		
+78.函数的重载与默认参数一起使用容易遇到二义性,请注意.
+	例:
+	 class A
+	{
+		public:	
+		  void func(int a, int b, int c = 0) {}
+		  void func(int a, int b) {}
+	};
+	int main()
+	{
+		A a;
+		a.func(1, 2); // 二义性出现
+     return 0;
+	}
+
+79.注意,纯虚类(抽象类)不可做为函数的返回类型,但是其指针可以.
+	例:
+		class ProtoType
+		{
+			public:
+				virtual ProtoType clone()=0;		//抽象类作为返回类型,直接报错
+		};
+		
+		class ProtoType
+		{
+			public:
+				virtual *ProtoType clone()=0;		//抽象类指针作为返回类型,允许操作
+		};
+		
+80.请注意,每个类你如果不想写原本的构造函数,而写了个其他的构造函数,
+	这时候你也得有个空构造函数,不然隐式建造类(直接栈上创建,像定义变量那种)的时候会容易无法匹配到对应的构造函数
+	例:
+	class aComplexClass
+	{
+    public:
+        //aComplexClass(){}
+        aComplexClass(aComplexClass* a){
+            this->A=a->A;
+        }
+    private:
+        int A;
+	};
+	int main()
+	{
+		aComplexClass A;			//直接报错,没有默认构造函数
+	}
+
+81.就算成员函数的访问类型是private和public的,在相同类 类型的对象中也是可以互相访问的
+	例:
+		class aComplexClass:public ProtoType
+{
+    public:
+        aComplexClass(){}
+        aComplexClass(aComplexClass* a){
+            this->A=a->A;						//虽然对象*a的A是私有的,但是同类 类型的对象*this依旧可以访问
+        }
+    private:
+        int A;
+};
+
+82.c++ 类的前向声明的用法
+	该方法声明的类
+	只能用于定义指针、引用、以及用于函数形参的指针和引用,也可以是友元函数.
+	不能定义对象(因为此时编译器只知道这是个类，还不知道这个类的大小有多大),
+	也不能访问类的对象，任何形式的访问都不允许(因为此时根本不知道有些什么成员).
+	类的向前声明就是类定义前用class 类名	在前声明。
+	例:
+		class B;		//类的前向声明
+		class A
+		{
+			public:
+				B b;
+		}
+		class B			//在这之前类B属于不完整,不知晓其有什么函数和变量
+		{	
+			
+		}
+	如果想要两个类可以互相的调用其方法和变量,看下面一条(不过类最好是单向需要,而不是双向需求)
+
+83.互相的.cpp文件互相包含.h文件就完事,但是别忘记#ifndef #define #endif
+	虽然代码感觉会很混乱,但是很有用
+
+84.c++存储类
+
+85.linux下查看可执行程序执行时寻找所求依赖库过程
+	命令
+
+	LD_DEBUG=libs /PATH/PROGRAMNAME -v
+
+	其中：
+	PATH 为程序目录
+	PROGRAMNAME 为程序名称
+	
+	输出log保存可以使用
+	
+	LD_DEBUG=all LD_DEBUG_OUTPUT=log  ./main  
+	
+	会生成一个output指定文件名加进程号结尾的文件
+	例如：log.4476

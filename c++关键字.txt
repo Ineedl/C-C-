@@ -1,5 +1,8 @@
 operator									//等号重载
 
+extern										//可用于
+											//	extern class typename	先放着
+
 static_cast<目标类型>(要转换类型的变量)		//不安全,用于强制隐形转换,对于对象来说,上行转换时安全的,而下行转换时不安全的,因为static_cast的转换是粗暴的
 
 dynamic_cast<目标类型>(要转换类型的变量)	//如果转换失败时,则返回NULL,之所以说static_cast在下行转换时不安全,是因为即使转换失败,它也不返回NULL.
