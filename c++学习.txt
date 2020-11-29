@@ -377,6 +377,15 @@ private:
 
 40.c++的结构体使用可以和类一样(也有移动 拷贝 构造 析构函数),
 	结构体中变量默认为public,默认的成员函数也为public,结构体之间的继承默认为public.
+	但是,类继承结构体时,默认为private继承
+			结构体继承类时,默认为public
+	例:
+		class A{};
+		struct B{};
+		class a:B		//默认private继承B
+		{
+		}
+		class b:A		//默认public继承A
 	
 	
 41.c++的三种继承方式
@@ -923,3 +932,19 @@ private:
 	
 	会生成一个output指定文件名加进程号结尾的文件
 	例如：log.4476
+	
+86.#define完后不需要加;(分号)
+
+87.要注意c++中 delete[]可以释放指向之 分配了空间的数组地址
+	例子:
+	int *a()
+	{
+		int *p=new int[10];
+		return p;
+	}
+	
+	int b()
+	{
+		int *t=a();
+		delete[] t;					//可以这样释放t的全部空间,至于是否完全把a中p的释放完了,待确定.
+	}
