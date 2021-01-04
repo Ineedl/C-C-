@@ -1,8 +1,9 @@
 c11特性
-	1.可以使用delete来显式禁止某些操作符(比如+ =的重载和new符号),还可以来禁止编译器生成析构函数,拷贝构造函数等函数
+	1.删除函数和默认函数
+	可以使用delete来显式禁止某些操作符(比如+ =的重载和new符号),还可以来禁止编译器生成析构函数,拷贝构造函数等函数
 		{
-		void *operator new(size_t) = delete;		//new符号禁用
-		void *operator new[](size_t) = delete;		//new数组符号禁用
+		void *operator new(size_t) = delete;		//全局new符号禁用
+		void *operator new[](size_t) = delete;		//全局new数组符号禁用
 		
 		X3& operator = (const X3 &) = delete;		//X3的=重载禁用
 		X3(const X3&) = delete;						//X3的拷贝构造函数禁用
@@ -34,10 +35,8 @@ c11特性
 	};
 	
 	
-	2.nullptr　是 nullptr_t 类型的常量，而该类型定义了转到任意指针类型的转换操作符，同时不允许该类型的对象转换到非指针类型
 	
-	
-	
+	3.移动和右值引用
 	左值引用和右值引用
 	左值和右值的分类标准:对他们取地址,如果能，就是左值；否则，就是右值。
 	左值:一般放在赋值符号=的左边变量或对象(该对象或变量必须具有存储空间,而且用户可以区改变该对象或变量的内容)
@@ -76,3 +75,34 @@ c11特性
 		std::thread t(some_function);
 		f(std::move(t));					//这里调用std::move()函数,将t声明为一个右值,并且可能要之后在f中传递,修改t的值
 	}
+	
+	4.nullptr
+		使用需要<cstdlib>头文件
+		
+	NULL在C++中被明确定义为整数0
+	NULL定义如下
+	/* Define NULL pointer value */
+	#ifndef NULL
+		#ifdef __cplusplus					//c++	
+			#define NULL    0
+		#else  								//c语言定义
+			#define NULL    ((void *)0)
+		#endif  
+	#endif  
+	
+	对于c++中的函数重载
+	A::P(int)
+	A::P(char*)
+	当传入NULL时,可能会进入A::P(int)而不是A::(char*)
+	为了解决这个问题c++11引入了nullptr
+	
+	nullptr关键字用于标识空指针，是std::nullptr_t类型的（constexpr）变量。
+	它可以转换成任何指针类型和bool布尔类型（主要是为了兼容普通指针可以作为条件判断语句的写法），但是不能被转换为整数。
+	
+	5.不定参数数量的模板,同不定参数函数
+	先省略
+	
+	
+	
+	
+	6.

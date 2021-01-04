@@ -4,6 +4,7 @@
 
 另一种是类外重载（运算符重载函数作为类的友元函数）
 
+注意：类中重载不可一被static修饰(原因很简单，一般需要this指针)，但是类外的运算符重载可以为static修饰
 
 运算符重载是类内重载时，运算符重载函数作为类的成员函数
 例子:
@@ -43,7 +44,7 @@ Point operator+(const Point &a,const Point &b){//类外重载,运算符重载函
 	双目算术运算符	
 						+
 						-
-						*
+						*				(可乘法)
 						/
 						%
 						
@@ -63,12 +64,13 @@ Point operator+(const Point &a,const Point &b){//类外重载,运算符重载函
 	单目运算符	
 						+				(正)
 						-				(负)
-						*				(指针)
+						*				(可指针)	
 						&				(取地址)
 						
 	自增自减运算符	
-						++				(自增)
-						--				(自减)
+						++				(自增)						//operator++()表示前缀++:++i
+																	//operator++(int)表示后缀++:i++
+						--				(自减)						//同上
 						
 	位运算符	
 						| 				(按位或)，
@@ -109,6 +111,7 @@ Point operator+(const Point &a,const Point &b){//类外重载,运算符重载函
 						sizeof				长度运算符
 						?:					条件运算符
 						#	 				预处理符号
+
 						
 运算符重载实例
 1.一元运算符重载	(如同i++,i--,-i这种,不做概述)
@@ -190,4 +193,29 @@ Point operator+(const Point &a,const Point &b){//类外重载,运算符重载函
 	   return 0;
 	}
 
-5.new，delete，new[]，delete[]等符号重载
+5.new，delete，new[]，delete[]等符号重载只是相当于对operator new等重载，而实际的new里面使用到了operator
+
+6.有部分运算符不可以在类中重载,比如<<与>>;
+
+7.注意重载->与<-会让你很难受
+	例子
+	tmplate<class T>
+	class shared_ptr
+	{
+		public:
+			T& operator*() const { return *px;}
+			T* operator->() const {return px;}
+			shared_ptr(T* p):px(p){}
+		private:
+			T* px;
+			long* pn;
+	};
+	
+	shared_ptr<Object> NbP(new Object);
+	Object f(*NbP);			//假设Object中有void类型和void参数的run方法
+	NbP->run();				//相当于f.run();
+							//原理:重载->，使用->返回一个Object*类型，然后再用->调用其类中方法
+							//c++中规定->与<-作用下去后，会继续对该符号作用下去，相当于一个->或<-多用
+							//上述相当于->作用了两次，但是只需要写一次 
+8.初始化列表不会触发()重载.	
+	
