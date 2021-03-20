@@ -49,12 +49,41 @@
 	class B:public A{	//指定自己初始化的时候自己的基类以number为值初始化
 	public:
 		B(int number):A(number){}		//对于父类的初始化一般必须要这样直接调用构造函数，如果你像这样初始化 B(int number):A(A()){} 会非常的不好看且多余(多调用了一次拷贝构造)
-		~B(){}
+		~B(){}				
 	};
 
 	注意,初始化列表不一定非得和传入构造函数的参数一致,可以按自己喜欢的来,
 	
-	虽然可以用初始化列表初始化父类，但是但是必须对应成员变量不能为父类变量且该类必须有。
+	虽然可以用初始化列表初始化父类，但是必须对应成员变量不能为父类变量且该类必须有。而且初始化列表最多只可以初始化父类,而不能是比父类更向上的类或基类.
+	例:
+		#include<iostream>
+		using namespace std;
+		class A
+		{
+			public:
+				A(int a){cout<<"A creat"<<endl;}
+				~A(){cout<<"A die"<<endl;}
+		};
+		class B:public A
+		{
+			public:
+				B():A(2)
+				{
+
+				}
+		};
+		class C:public B
+		{
+			public:
+				C():A(1){}		//此处可以初始化类B,但是不允许初始化类A.
+		};
+		int main()
+		{
+			C *b=new C();			
+			delete b;
+		}
+	
+	
 	
 
 2.c++函数可以有默认参数值,默认参数赋值必须全部写在参数列表右边,在调用函数时对应默认参数位置如果没有值传进来就默认
@@ -65,11 +94,48 @@
 
 4.C++每个成员函数默认有一个this指针 例如 void crdd(P *this) (该类名为P)
 
-
-
 5.const修饰的常成员函数中无法改变类中成员变量的值而且无法调用非const函数,常成员函数与同名而且同参数的成员函数互为重载。
 
-  一般调用该名函数时 用const修饰对象调用的为const修饰的常成员函数 没用的就调用的那个没有const修饰的函数。
+  一般调用该名函数时 用const修饰对象调用的为const修饰的常成员函数 没有用的就调用的那个没有const修饰的函数。
+  const修饰后的函数虽然和没有被const修饰的同名同参函数构成重载,
+	但是没有被const修饰的对象在不存在非const修饰的函数时,可以调用const修饰的函数,但是被const修饰的对象只能调用const函数
+	例子:
+		class B
+		{
+			public:
+				B(){}
+				void d() const
+				{
+					cout<<"d c"<<endl;
+				}
+				/*void d() 
+				{
+					cout<<"d"<<endl;
+				}*/
+		};
+		int main()
+		{
+			B *b=new B();
+			b->d();			//非const的B类对象b可以调用const修饰的成员函数d,在栈上也是一样.
+		}
+		class B
+		{
+			public:
+				B(){}
+				/*void d() const
+				{
+					cout<<"d c"<<endl;
+				}*/
+				void d() 
+				{
+					cout<<"d"<<endl;
+				}
+		};
+		int main()
+		{
+			const B *b=new B();
+			b->d();			//报错,const对象不可以调用非const修饰的成员函数
+		}
   
   例: 类A中有两个方法 p和const的p，两个方法的参数列表相同均为p；
 		const A a();     a->p();	//调用const修饰的成员函数p();
@@ -109,7 +175,7 @@
 				 |		   |
 				 --->类D<---
 	如果类C和类B不虚继承类A,然后再都被D继承,那么D构造时,会有两个类A的拷贝(非常浪费空间),这就是虚继承的用法
-	注意:在这个关系中类C和类B都要虚继承类A,如果其中只有一个虚继承,那么类A还是会在类D中拷贝两份
+	注意:在这个关系中类C和类B都要虚继承类A,如果其中只有一个虚继承,那么类A的非static变量还是会在类D中拷贝两份
 	例:
 		#include<iostream>
 		class A{
@@ -146,6 +212,8 @@
 			return 0;
 		}
 	此例中new C后将会有两个new A打印出来,若B1与B2 虚继承A 则将不会有这种现象,这个例子体现出了上面的原因
+	注意,如果发生菱形问题,调用被复制多个的父类变量时,会产生歧义问题(不知道调用的哪个父类的变量)
+		这些多出来的变量也会多占有空间
 	
 15.virtual保证了父类的指针指向子类对象时,调用子类和父类都有的函数时不会调用到父类函数(动态绑定)
 
@@ -169,7 +237,7 @@
 	{
 		CShape* p = new CRectangle();
 		delete p;							//此时调用的是CShape的析构函数,虽然声明的是CShape类对象,但是实际上还是CRectangle类,
-											//这时调用CShape的析构函数,除非是有意而为,不然非常不符合逻辑
+											//这时调用CShape的析构函数,然后再逐步析构CShape上面的基类,除非是有意而为,不然非常不符合逻辑
 		return 0;	
 	}
 	
@@ -308,13 +376,16 @@ private:
 
 	2、拿对象作为函数的参数		因为形参要被创建出来，这个构造函数不加const也没关系
 
-	3、拿对象作为返回值(高版本编译器中，这种情况会直接优化掉,将会出现该临时对象的空间直接被调用者使用的情况)
-								函数返回时,会拷贝对象或变量到一个临时变量(如果返回不为引用)，
-								这种例子是直接
+	3、拿对象作为返回值
+																			(高版本编译器中，这种情况会直接优化掉,将会出现该临时对象的空间直接被调用者使用的情况)->该说法可能错误,现有更合理的解释
+																			函数返回时,会拷贝对象或变量到一个临时变量(如果返回不为引用)，->该说法可能错误,现有更合理的解释
+																			这种例子是直接
 								TestInformation test(TestInformation T)
 								{
-									return TestInformation();			//无数据载体变量，直接新建一个对象并返回对象，就会建立一个临时变量把数据传出去
-								}
+									return TestInformation();			//无数据载体变量，直接新建一个对象并返回对象，就会建立一个临时变量把数据传出去->该说法可能错误
+								}										//return后会调用转换函数将TestInformation&&转换为TestInformation(拷贝构造也算一种转换函数)
+																		//如果拷贝构造函数中参数没加const,则由于一般类型无法转换为其他类型的非const引用,故无法实现,会报错		->现在的可靠说法
+																		//除非你有A&&->A的移动(转换函数), A(A&& a){}
 								而像这种有载体的数据例如
 										TestInformation test(TestInformation T)
 										{
@@ -325,15 +396,15 @@ private:
 								
 								特别注意：高版本编译器中会直接将上述例子优化，将上述中return TestInformation();时建立的对象的空间直接给调用者使用，而不会调用拷贝构造函数。
 			
-								
-							
-	对于是否有时候拷贝构造函数不加const,一般99.9%的情况都是建议加
+						
+	 对于是否有时候拷贝构造函数不加const,一般99.9%的情况都是建议加
 	
-	程序中有以下几种情况时 拷贝构造函数不用加const:
+	 程序中有以下几种情况时 拷贝构造函数不用加const:
 	
-	1.程序中完全无以该类为返回值的函数
+	 1.程序中完全无以该类为返回值的函数
 	
-	2.程序中完全无以该类引用的const形式为形参的函数
+	 2.程序中完全无以该类引用的const形式为形参的函数
+	
 
 
 
@@ -557,11 +628,24 @@ private:
 	甚至是经过别的模板类包装之后的模板类型）或完全被指定了下来。
 	
 	特化整体上分为全特化和偏特化
+	
 
 	全特化：就是模板中模板参数全被指定为确定的类型。
 			全特化也就是定义了一个全新的类型，全特化的类中的函数可以与模板类不一样。
 
 	偏特化：就是模板中的模板参数没有被全部确定，需要编译器在编译时进行确定。
+	偏特化也有范围偏特化
+	例:
+	template<class T>
+	struct A{}
+	template<class T>
+	struct A<T*>{			//传入指针的偏特化
+		public:
+			T* a;			//这里T还是template中的T而非指针类型
+	}				
+	template<class T>
+	struct A{const T*}			//传入const T指针的偏特化
+		
 
 	因为函数的模板的偏特化不如直接重载，故函数不允许偏特化
 
@@ -588,7 +672,8 @@ private:
 		return strcmp(left[0], right[0]);
 	}
 
-	类的全特化例子：
+	
+	全特化例子：
 	template<typename T, class N> void func(T num1, N num2)
 	{
 		//cout << "num1:" << num1 << ", num2:" << num2 <<endl;
@@ -676,7 +761,7 @@ private:
 		指针类型		NULL
 		
 61.虚函数和模板
-	虚函数覆盖条件必须是模板参数也一致
+	虚函数覆盖(重写)条件必须是模板参数也一致
 	例子
 	template<typename T>
 	class A{
@@ -705,7 +790,7 @@ private:
 	template<typename T,typename Y>
 	class B:public A<Y>
 		
-62.虚拟函数不能是模板函数
+62.虚函数不能是模板函数
 
 63.模板分离编译的时候
 	g++的-c选项对模板只会进行一次编译,编译后的.o文件中的模板信息为空,
@@ -747,7 +832,7 @@ private:
 67.数组里面buf[0]=*(buf+0)
 		   0[buf]=*(0+buf)
 
-68.C++里面一般&和变量在一起是取地址,和类一起时是引用
+68.C++里面一般&和参数类型一起出现时是表示取引用
 
 69.c++构造函数有很多种，只要你在建立类时能正确的使用你建立的其中一种构造函数就可以。
 	例：
@@ -793,7 +878,8 @@ private:
 		上述中只是把函数中局部变量的地址值给了指针形参,而在main中,a和b的值仍不变
 	
 71.c中可以用void*的指针将一个类型的指针赋予给另外一个类型的指针而不用显示说明,但C++中必须显示说明
-	即其他类型指针赋予void*不会报错,反过来会(不止void*,其他任何类型的指针互相转换,除了向上转型和向下转型,都必须显示说明)
+	即其他类型指针赋予void*类型不会报错,反过来会
+	(不止void*,其他任何类型的指针互相转换,除了向上转型和向下转型,都必须显示说明)
 	例:
 	#include<stdio.h>
 	int main()
@@ -904,6 +990,9 @@ private:
 	
 	关于对象引用作为参数的情况:
 	过于复杂,建议在函数中对象引用参数前都加上const修饰(包括类拷贝函数),一般也为了防止被拷贝的类被修改,都会加
+	
+	对于返回引用类型:
+		返回引用时,不可以返回函数中局部变量以及任何右值,任何都不可以.与右值引用相关的也不可以
 	
 74.c++继承时,在成员变量方面,子类继承父类的变量但是该变量是父类的(详情参考c++继承后类的构建),子类只可以用对应权限访问与修改
 	对于继承下来的变量,在子类中显示使用为 
@@ -1019,7 +1108,7 @@ private:
 		aComplexClass A;			//直接报错,没有默认构造函数
 	}
 
-81.就算成员函数的访问类型是private和public的,在相同类 类型的对象中也是可以互相访问的
+81.就算成员函数的访问类型是private和protected的,在相同类 类型的对象中也是可以互相访问的,因为两个访问类型只限定于对象而不是类
 	例:
 		class aComplexClass:public ProtoType
 {
@@ -1271,6 +1360,7 @@ private:
 
 
 97.::operator new与c++的符号new与new运算符重载与placement new(delete一样)
+
 	
 	(1)::operator new
 	operator new和operator delete有两个重载版本，每个版本支持相关的new表达式和delete表达式：
@@ -1311,18 +1401,49 @@ private:
 	虽然用户某些时候无法直接调用构造函数，但是用户可以随时自行调用析构函数，但是一般自行调用后并不会释放对应空间，除非你确实做了这个操作。
 	一个调用构造函数的办法 new(对应对象的一个指针)构造函数名(参数列表) ,但是这也属于创建了一个临时对象。
 	其实 
-		Foo* p = new Foo(x);													Foo* p = (Foo*)operator new(sizeof(Foo))			//这也解释了初始化列表为啥会先于构造函数调用,由于c++中void*赋予其他指针必须要显示声明要赋予的类型
+		Foo* p = new Foo(x);													Foo* p = (Foo*)operator new(sizeof(Foo));			//这也解释了初始化列表为啥会先于构造函数调用,由于c++中void*赋予其他指针必须要显示声明要赋予的类型
 																																	//而operator new规定必须返回void*类型,所以这里必须显示声明指针为(Foo*)
 											->等价								new(p)Foo(x);										//必须先有空间,才能构造类中的变量和指针指向等
 											当然也可以直接像右边那样写
 		delete p;																p->~Foo();											//必须先释放空间中指针指向的地址等才能释放整个类
 																				operator delete(p);
 
+	new(p)Foo(x)的用法其实是operator new的一种重载用法.见下面注意,也算是一种使用别人的空间来给当前类,且调用构造的new重载.
+	实际上就是一个重载,void* operator new(size_t size,void* p),该new重载默认情况下会将给p分配的空间用来构造对象,
+	注意:其他指针类型参数可以直接给void*而不用转换,
+	所以在没有合适类型的指针参数对应重载时,任何类型的指针都会传入该new.
+	详情见120条.
+
+	
+	测试例子:
+	#include<iostream>
+	#include<malloc.h>
+	class A{
+		public:											
+			void* operator new(size_t size,void* p)						
+			{
+				return p;
+			}
+	};
+	using namespace std;
+	int main()
+	{
+		A* p = (A*)operator new(100);
+		A* t = new(p)A();					//将A中void* operator new(size_t size,void* p)改为private后会报错.
+											//说明的确是使用的void* operator new(size_t size,void* p)这种形式的重载
+		cout<< _msize(t)<<endl;
+		char *pp=(char*)operator new(1000);	
+		A* tt = new(pp)A();					//将A中void* operator new(size_t size,void* p)改为private后会报错.
+		cout<< _msize(tt)<<endl;
+
+	}
 	
 	(3)new运算符重载
 	运算符重载使得对该类使用new相当于使用该中的重载的new函数属于(1)中的一种
 	类中new运算符重载算是一种::operator new重载
 	对于new运算符重载，原理就相当于上面等效后使用自己建立的operator new
+	new/delete运算符重载在类中重载都默认为static函数.
+	当new对应重载了new的类时其实相当于是调用的 类名::new(参数)
 	
 	
 	
@@ -1334,7 +1455,7 @@ private:
 	注意 使用该方法分配内存你必须要注意使用原来的指针释放空间，因为空间分配好后的头信息是固定的，
 	这个方法只是用分配好的构造空间来建立对象
 	
-	注意
+	注意:
 	1.要在重载了operator new的类中使用全局new或是operator new时,可以使用
 		::new 与
 		::operator new
@@ -1351,7 +1472,10 @@ private:
 			string t="提示".
 			A *a=new(t,10,3.1415) A();		//不用传入第一个,第一个参数由编译器计算并传入		//new和()和A()中间可以任意加空格或是不加,这样写只是为了方便辨认
 	 (3)对于不止一个参数的delete/delete[]的使用方法为
-			c++中一般的delete/delete[]只能调用那个默认的一个参数的delete/delete[]重载,
+			c++中一般的delete/delete[]只能调用那个默认的一个参数或默认调用那个默认两个参数的delete/delete[]重载,
+				即void operator(void* p,size_t size)与
+				  void operator delete(void* p)
+				  若两个重载同时存在,则优先调用单个参数的重载
 			对于有参数的delete/delete[]重载,不能手动调用,
 			只会在第一个参数后与new/new[]第一个参数之后相同的new/new[]重载在调用之后的构造函数中产生异常,且该异常被捕捉后,就会自动进行调用
 		例:
@@ -1549,7 +1673,7 @@ private:
 
 102.c++默认允许向上转型，但是向下转型必须强制要求。
 
-103.c++可以使用重载*和->和模板来创建一个自己想要的只能指针
+103.c++可以使用重载*和->和模板来创建一个自己想要的智能指针
 	例子:
 		下面几乎是标准库中智能指针的固定拥有部分
 	tmplate<class T>
@@ -1577,7 +1701,7 @@ private:
 	仿函数也可以用临时对象来调用：
 	上述例子中可以MyFunction()(10);来调用仿函数
 	
-105.类中运算符重载不可声明为static			//另外一个笔记也有这条
+105.类中运算符重载不可声明为static(除了new/new[]和delete/delete[]以外)			//另外一个笔记也有这条
 	类外的可以加static
 
 106.注意模板中的符号对传入类的运算符重载也有效果
@@ -1641,7 +1765,7 @@ private:
 	}
 	对于一般类型的引用的返回值类型,不建议返回右值,非常容易出错且程序宕掉。
 
-108.在模板类中可以继续使用模板函数
+108.在模板类中可以继续使用模板函数,但是不允许使用模板虚函数.
 	例:
 	template<class T1,class T2>
 	class piar{
@@ -1667,7 +1791,7 @@ private:
 												//等同于 piar<int,int> second=piar<int,int>(first);
 	总之，对于模板的一切操作，只要说得过去，都几乎可以做
 
-109.在栈上默认构造一个对象时，不要加(),加()不会调用默认构造(在堆上要不要无所谓)
+109.在栈上默认构造一个对象时，不要加(),加()只是相当于在文件开头的函数声明.
 	例:
 		class piar2{
         public:
@@ -1681,7 +1805,7 @@ private:
             int a;
 		};
 		
-		piar2 p();	//p对象根本没有被构造
+		piar2 p();	//p对象根本没有被构造,这里只是声明了一个返回值为piar2的无参函数p.......
 		piar2 p1;	//正确方法
 		p.dio2();  	//报错
 		p1.dio2();	//正常运行
@@ -1806,13 +1930,26 @@ private:
 											//说明了一个类在创建后,在其基类中操作时,其基类中的this指针仍然是该基类对象
 	}
 			   
-117.(1)类中,只有变量才会算入该类的大小空间,任何成员函数一律不算入,
-		这个和结构体不一样,虽然类中函数表现得像结构体中得成员函数,但是结构体中,函数指针空间大小计入实际大小
+117.(1)类中,只有变量才会算入该类的大小空间,任何普通成员函数(包括static的非virtual函数)一律不算入,这些函数一共大小都只有1字节
+		结构体和这个一样,但是请注意,函数指针算入空间.(注意,这里的1字节也好像是因为c++标准当申请0字节的空间时,c++必须也给1字节的空间)
+		例:
+			void  * operator  new ( size_t  size)  // operator new 还可能有其它参数
+			{
+				 if  (size == 0) {  // 处理0 字节请求时，
+					 size = 1;  // 把它当作1 个字节请求来处理			//默认new operator标准的代码前一部分
+																		//c++表示在new时必须返回一个分配空间的有效值,
+																		//但是0字节显然(NULL)不是有效值,所以最少为1
+					 
 		类继承会将父类中的变量计入该类的总体大小计算中,这个请注意
-	(2)注意,一个空类的大小和一个空的结构体一致,均为1,空结构体大小取1只是为了区分每个空结构体(因为结构体或类中可以typedef一个类型然后在外面使用该类型),
+	(2)注意,一个空类的大小和一个空的结构体一致,也均为1字节,空结构体大小取1只是为了区分每个空结构体(因为结构体或类中可以typedef一个类型然后在外面使用该类型),
 		当然,类中有函数或变量时，就不用和别的空类区分了。
-	(3)类中只要有函数(哪怕只有一个),无数据类型,则其大小为4,这说明了类中的函数都是存放在一个像表一样的东西中,而类中只有一个指针指向那个表
+	(3)类中只要有虚函数(哪怕只有一个),无数据类型,则其大小为4(这个和使用编译器的位数有关,32位编译器的只有4字节),这说明了类中的虚函数都是存放在一个像表一样的东西中,而类中只有一个指针指向那个表
 		当然,对于虚函数的虚表指针,可能是该指针指向的数据结构或是多个数据中的一个成员。
+	(4)当然,在有虚函数后,若没有多余变量,类的大小并不是4+1=5而是4(32位编译器),这是因为之后不同的类可以根据虚表的指针来区分
+	(5)虚继承时,在虚继承之后的类及其子类的大小都会+4(32位)/+8(64位),这是因为多了一个防止发生因为菱形继承问题而发生的产生多个父类问题的指向父类的指针.
+	(6)注意,发生菱形问题时,如果不适用虚继承,对于最终基类的变量也只会拷贝一份过来,但是使用会发生二义性.
+	(7)被static修饰的变量都不算入类的大小中,但是单纯用const修饰会.
+	(8)注意子类继承的父类中有虚函数或其父类继承的类中有虚函数,那么该子类就算没有虚函数,那么他也会有一个虚表(用来实现动态绑定)
 
 118.注意c/c++中sizeof无法测出指针指向内存的大小,就算是加*也只能测出该指针变量所用空间.
 
@@ -1823,4 +1960,730 @@ private:
 	c++中static_cast就是这种转换
 	直接复制转换是reinterpret_cast.
 
-120.
+120.由于任何指针类型都可以传入void*
+	某函数(包括普通函数和类中函数)对于对应void*位置传入其他类型指针参数,但是该函数的其他的参数个数和其他非指针类型参数满足时,仍然会调用该函数.
+	但是合适的函数和上述函数都存在时,优先调用合适的函数.
+	例子:
+	#include<iostream>
+	#include<malloc.h>
+	using namespace std;
+	class A{
+		public:  
+			void pt(void* a)
+			{
+				cout<<"void *"<<endl;
+			}
+			/*void pt(int *a)
+			{
+				cout<<"int *"<<endl;
+			}*/
+			
+	};
+	using namespace std;
+	int main()
+	{
+		A a;
+
+		int *b=NULL;
+		void *c=NULL;
+
+		a.pt(b);			//调用void pt(void* a),若void pt(int *a)的注释删除,优先使用,void pt(int *a)
+		a.pt(c);			//调用void pt(void* a)
+
+	}
+
+121.对于static关键字
+	在c++中,
+		修饰成员函数,表示该函数在该类中不需要建立对象就可以使用,在定义该函数的文件外也可以访问,但是在声明时写了static后,实现时不用再写(不能再写,写了就报错)
+		修饰成员变量,表示该函数在该类中不需要建立对象就可以使用,在定义该函数的文件外也可以访问,但是在声明时写了static后,实现时不用再写(不能再写,写了就报错)
+			修饰成员变量必须在全局区域(所有函数的外面)进行声明后才可以使用(格式:	类型	类名::变量名=值		,注意不要加static)
+		修饰普通函数,同C
+		修饰全局变量,同c
+		修饰局部变量,同c
+	在C中
+		修饰普通函数,则这个函数的只能在本文件中调用,不能被其他文件调用,当然你可以在.h中的声明加上static后可以不用在.c/.cpp的文件中实现时再加.
+		修饰全局变量,表示这个全局变量只能在本文件中访问,不能在其它文件中访问,即便是 extern 外部声明也不可以。
+				一般要跨文件使用全局变量时,在.h文件中添加extern声明,在对应的.c文件中定义.
+			例:
+				A.h
+					#ifndef A_H
+					#define A_H
+					extern int A_value;					
+					static int static_test();			//某文件导入A.h后如果使用该函数会报错.
+					#endif
+				A.c
+					#include"A.h"
+					int A_value=999;					//用static修饰时,A.h中extern int A_value;会报错
+					int static_test(){return 1;}		//实现时加不加static无所谓
+		修饰局部变量,static 修饰的静态局部变量只执行初始化一次,而且延长了局部变量的生命周期,直到程序运行结束以后才释放。
+		
+	注意,在c++中
+			static和const修饰成员函数时相冲突
+			static和virtual冲突
+
+122.运算符重载可以是虚函数,也支持动态绑定.
+
+123.注意c++里面虽然数组和指针可以互相混用,但是数组的引用和指针的引用不可以混用
+
+124.注意用malloc和new等分配内存后,如果不memset或是使用是不会实际占用的.
+	例子:
+		#include<iostream>
+		#include <cstdlib> 
+		#include<malloc.h>
+		#include<string.h>
+		using namespace std;
+		size_t size1=size;
+		class A
+		{
+			public:
+				void* operator new[](size_t size)
+				{
+					cout<<"A new"<<endl;
+					void* p=malloc(size);
+					size1=size;
+					cout<<"new ok"<<endl;
+					return p;
+				}
+		};
+		int main()
+		{
+			set_new_handler(noMoreMem);
+			unsigned long long i=1000000000000000000000000000;
+			A* a= new A[i];
+			memset(a,0,size1);		//有这个程序就会宕掉,但是注释后不会宕掉(size1≈3G或4G)
+			while(1);
+		}
+
+125.注意 每次malloc和new占用的内存都会比实际的大,因为申请后的空间包含着该申请空间的信息(可能该信息头尾一个,详情参考深入理解计算机系统的动态分配)
+	所以想要减少这种内存占用,可以自己设计内存管理,比如重载new,来一次性分配的大量内存,之后将该分配的内存分块(做成链表形式等),
+	然后在类中定义一个static变量用来存放该链表等.
+	例:
+	#include<cstddef>
+	#include<iostream>
+	using namespace std;
+	class Screen
+	{
+		public:
+			Screen(int x):i(x){}
+			int get(){return i;}
+			void* operator new(size_t);
+			void operator delete(void*,size_t);
+		private:
+			Screen* next;
+			static Screen* freeStore;			//分配大块空间并切割后后指向链表的头
+			static const int screenChunk;		//你需要每次准备多少个空闲位置
+		private:
+			int i;		//模拟每个对象中存储的数据
+	};
+	Screen* Screen::freeStore=0;
+	const 	int Screen::screenChunk=24;
+	void* Screen::operator new(size_t size)
+	{
+		Screen* p;
+		if(!freeStore)
+		{
+			size_t chunk = screenChunk*size;
+			freeStore=p
+						=reinterpret_cast<Screen*>(new char[chunk]);
+			for(;p!=&freeStore[screenChunk-1];++p)			//注意,这里freeStore相当于一个Screen数组而非Screen*数组,请特别注意
+				p->next=p+1;
+			p->next=0;
+		}
+		p=freeStore;			//此处将之前分配内存给新的对象
+		freeStore=freeStore->next;
+		return p;
+	}
+	void Screen::operator delete(void* p,size_t size)
+	{
+		(static_cast<Screen*>(p))->next=freeStore;			//将分出去的空间重新连回来,注意这里并没有调用free或是delete,
+															//一般这样虽然不算内存泄漏但是这样也不好
+		freeStore = static_cast<Screen*>(p);
+	}
+	int main()
+	{
+		size_t const N=100;
+		Screen* p[N];
+		for(int i=0;i<N;i++)
+			p[i] = new Screen(i);
+			
+		for(int i=0;i<10;i++)
+			cout<<p[i]<<endl;
+		for(int i=0;i<N;++i)
+			delete p[i];
+	}
+	上述例子中,当把重载new和delete去掉后和不去掉时分配的空间地址输出后相对比,
+	会发现在分配空间连续的情况下,不重载new的数据的地址间隔大于重载new的数据的地址间隔.
+	这算是理解分配器作用的一个例子,当然分配器的实现和内存管理不止这一种
+
+126.注意,c++中的没写出来时的默认函数
+	比如不写时候的默认构造和默认拷贝函数和默认operator=重载,全部都是public访问类型.
+	
+127.以前老版本,用变量定义数组是不行的(不要想是用new不行还是直接在栈上不行,这无意义,结果都是最好是你能控制在使用变量定义数组时能得到你想要的结果)
+	例子：
+		int a=99;
+		int b[a];			//老版编译器会报错
+	所以为了兼容性和正确性,用变量定义数组时,最好是用const变量
+	或是定义后在建立对应数组时能保证你想要的结果
+
+128.注意 之前提到了,子类可以直接调用父类中的public函数,
+	当然,operator new和operator delete也是如此,
+	所以如果一个基类有operator new/ner[] delete/delete[]时,如果其子类没有写new/ner[] delete/delete[]重载,
+	则子类new和delete时用的不是一般类new时默认的new,而是基类的new
+	
+	所以如果不想发生这种情况可以在重载new时的开头来这样判断
+	void* operator new(size_t size)
+	{
+		if(size!=size(A))		//假设重载new的该类为A
+			return ::operator new(size);		//将工作给全局的new
+	
+	如果继承后的类大小未变,则可以使用运行时类型识别来判断是否为重载该new的类调用的该operator new.
+
+129.类中出现内嵌结构体或是类并不会算入类的大小里面,而且某种意义上也并不是算是类的成员,只是说给该类使用或是根据访问类型给外面的类使用.
+	例:	
+		class A
+		{
+			private:			
+				struct Anum			//该结构体变量只能在该类中定义,换成public就可以在外面以A::Anum的形式使用,但是不能以	A类的对象::Anum这样使用
+				{
+					int a;
+					int b;
+				};
+				class Anum2			//该类对象只能在该类中定义,换成public就可以在外面以A::Anum2的形式使用,但是不能以	A类的对象::Anum2这样使用
+				{
+					public:
+						int a;
+				};
+			public:
+				A(int a,int b)
+				{
+					Anum t;
+
+				}
+		};
+		class B
+		{
+			public:
+				struct Anum					//A的Anum和B的Anum并不通用,就像是namespace一样,哪怕他们成员和名字一样,但是并不相同
+				{							
+					int a;					
+					int b;					
+				};
+		};
+		注意:
+			A::Anum和B::Anum变量相等时会提示要求有operator=重载,但是operator=只能为成员非static重载
+			所以说如果不再A::Anum中重载operator=或是在B::Anum中重载operator=,那么他们绝对不能通用
+			这进一步的反映了这两个不是能互相通用的类型
+		可以这样理解:类中定义类和结构体相当于是一个有访问权限的namespace.
+						类中定义枚举变量也是如此.
+
+130.c++在::operator new/new[]和类默认的new/new[]重载分配内存不够时将要抛出异常之前会调用一个函数,用户可以手动指定该函数
+		该函数必须是无返回值,而且无参数
+		该函数有意义的任务只有以下两个,
+			1.释放空间使实现了该功能::operator new/new[]和类默认的new/new[]
+				以及重载的new/new[]中分配空间成功
+			2.调用abort()或exit()结束程序.
+	vc与gcc中的该功能设定如下
+		new会在内存分配不够时调用该函数并且监测其返回值,
+		若该函数也没能完成任务,则抛出异常
+		类似代码如下
+			(vc中定义)
+			void* operator new(size_t size,const std::nothrow_t&)_THROW0()
+			{
+				void* p;
+				while((p=malloc(size)==0))
+				{
+					_TRY_BEGIN
+						if(__callnewh(size)==0) break;		//__callnewh()使用了set_new_handler指定的函数做了对应处理
+						_CATCH(std::bad_alloc)	return (0);
+						_CATCH_BND
+				}
+				return (p);
+			}
+			typedef void (*new_handler)();
+			new_handler __cdecl set_new_handler(new_handler new_P)
+			{
+				assert(new_p==0);
+				_set_new_handler(0);		//删除现在的new_handler
+				return 0;
+			}
+			原理就是内存不够时,通过之前指定的一个void返回值的无参函数来释放一些空间,
+				故一般自己的::operator new/new[]和operator new/new[]可以选择加或是不加这种功能
+	
+	注意,自己写的重载的operator new/new[],::operator new/new[]如果不做这种设定,就算设置了触发函数也将不会触发该函数.
+	即 void test();这种类型
+	使用set_new_handler(void(*p)())函数来指定函数
+	该函数定义如下,实现如上
+		typedef void (*new_handler)();
+		new_handler set_new_handler(new_handler p)throw();
+	一个例子
+	#include<iostream>
+	#include <cstdlib> 
+	using namespace std;
+	class A
+	{
+		public:
+			/*void* operator new[](size_t size)				//重载的operator new/new[],::operator new/new[]如果像上述那样的Vc中的监测,不会调用
+			{												//set_new_handler指定的函数
+				cout<<"A new"<<endl;						
+				cout<<size<<endl;							//此外,重载后不注释,使用该函数会发现size的值没有指定的1000000000000000000000000000那么大,
+				void* p=malloc(size);						//此处用gcc 32位测试size=3G,可能是编译器设置单个程序内存分配上限为3G,详情见深入理解计算机系统内存部分
+				cout<<"new ok"<<endl;
+				return p;
+			}*/								
+	};
+	void noMoreMem()
+	{
+		cerr<<"don't have free mem!"<<endl;
+		//exit(0);								//注释exit后,如果内存不够用,将会一直调用该函数以期望该函数可以释放一些内存
+	}
+	int main()
+	{
+		set_new_handler(noMoreMem);
+		unsigned long long i=1000000000000000000000000000;			//绝对不够用的内存数量,这里仍然超过了i的范围,但是仍然i数量那么大的内存仍然不够用
+																	//这里用int就可能就没效果了,理由很简单
+		A* a= new A[i];
+	}	
+	这说明了一种内存分配的设计模式,内存分配器可以设置为多个等级,当最下面的完成不了分配任务时,可以请求上级来释放部分内存
+
+131.嵌入式指针
+	在存放数据时,若用指针管理存放的数据,则可以使用嵌入式指针.
+	其原理是将指针部分和数据部分声明为共用体,这样有时可以节省很多空间.
+	例:
+	class A_common_class{
+		private:
+			union share{
+				struct data* next;
+				struct data mydata;
+			}
+	}
+	
+	struct data{
+		union share{
+				struct data* next;
+				struct importance_data data;
+			}
+	}
+
+	union data
+	{
+		union data* pointer;
+		struct true_data;
+	}
+
+132.注意,在继承后的子类中,在基类初始化时,子类必须保证在调用构造函数之前父类可以顺利的初始化,否则将会报错,
+	详情见P1,子类最多初始化其父类而不能初始化其更上级的父类.
+	例:	
+		#include<iostream>
+		using namespace std;
+		class A
+		{
+			public:
+				A(int a){cout<<"A creat"<<endl;}				
+				~A(){cout<<"A die"<<endl;}
+		};
+		class B:public A
+		{
+			public:
+				//B(){}						//报错,因为A无默认构造函数,B在构造时无法调用默认构造构造A.
+
+				B():A(1){}					//可以,初始化列表先于构造函数执行,
+		};
+		int main()
+		{
+			B *b=new B();
+			delete b;
+		}
+	若子类在构造父类时,父类构造函数为private,则子类也将不能正常的初始化.
+
+133.引用和const的关系
+	可以通过const引用来绑定一个非const的非指针对象而来调用const函数
+		但是通过非const引用来绑定一个const的指针对象而来调用const函数无法实现
+			(因为非const指针类型的引用不可以绑定非const指针类型(此处const指针类型是指指针指向数据不可变))
+	同时被const修饰了的指针和变量都不可以被非const对应类型的引用绑定
+	例:
+		#include<iostream>
+		using namespace std;
+		class A
+		{
+			public:
+				A(){}
+				void p() const
+				{
+					cout<<"0  & have c"<<endl;
+				}
+		};
+		int main()
+		{
+			    const A a;					
+				const A* a1=new A();		
+				A& b=a;						//报错
+				A* const &b1=a1;			//报错
+
+				A a2;
+				A* a3=new A();				
+				const A& b2=a2;				
+				const A* &b3=a3;			//报错,必须a3为const A*才可以绑定
+				b2.p();
+		}
+
+134.虚继承原理:
+	虚继承只是说在虚继承后的类中建立了一个指向被虚继承类的指针.然后在继承指向父类中的变量.
+	继时该指针也会被算入子类的大小中.但是可以保证子类只有一份被该指针指向的类的变量.
+	
+135.注意c++中类的大小除了之前所属的计算方式以外(第117条),其还会有和c语言结构体中一样的对其大小计算方式,
+	例:
+		class A					//类A大小为8,不为5
+		{
+			public:
+				int a;			//此处int 4字节大小
+				char b;			//此处char 1字节大小
+		}
+
+136.c/c++中结构体/类类所占空间计算方式
+	C结构体大小计算公式
+		1.
+		在GNU GCC 编译器中，遵循的准则：根据最宽的基本数据类型来定——对齐模数最大只能是4，
+		 也就是说，即使结构体中有double类型，对齐模数还是4，所以对齐模数只能是1,2,4。
+ 
+  		64位系统下默认最大对齐位8，也就是如用#pragma pack(16)设置字节对齐超过最大对齐，其无效，
+         还是按照最大对齐,所以对齐模数只能是1，2，4，8；如果最大类型为int，那么按照4字节对齐，
+		  如果最大字节为short按照2字节对齐，最大字节为char按照1字节对齐(哪怕在此时你设置了#pragma pack(8)也是4字节对其,所以说#pragma pack(16)只能是设置比当前对其数小的数字来对其)；
+ 
+  		但是64位下如果有指针则按8字节对齐，因为在64位下指针占8字节，除此之外32下int占多少字节，其64位下就占多少个字节。
+		
+		2.除结构体的第一个成员外，其他所有的成员的地址相对于结构体地址(即它首个成员的地址)的偏移量必须为实际对齐单位或自身大小的整数倍(取两者中小的那个)
+	以最大的那个变量的字节数来对其,当然,函数指针和虚函数表指针的大小也算在里面
+	下述前2个的例子都在32位编译器下测试(指针4个字节)
+	
+	例:
+		class E{					//E大小 为 3+1(a变量需要对其而浪费的)+4+4*2+4*2+4*2+(4+1*3)(前面括号中数值不足8(double最大所以以8对其),但是以8对其算8)=40,struct同理		
+			char c3;
+			char c2;				//此处char 大小1字节
+			char c1;
+			
+			int a;					//此处int 大小4字节
+			
+			int b;
+			
+			int c;
+			
+			int d;
+			
+			int e;
+			
+			int f;
+			
+			int g;
+			
+			double t;				//此处double大小8字节
+		};
+		class E2{					//E2大小	为 8+4*2+4*2+4*2+(4+1*4)+1(前面数值1不足8(double最大所以以8对其),但是以8对其算8)=48
+			char c5;
+			char c4;				//此处char 大小1字节
+			char c3;
+			char c2;
+			char c1;
+			int a;					//此处int 大小4字节
+			int b;
+			int c;
+			int d;
+			int e;
+			int f;
+			int g;
+			double t;				//此处double大小8字节
+		};
+	
+	注意,在虚继承指针加入后,也会加入此计算公式.
+	例:
+		class A							//A的大小位8+(4+4)+1(前面数值1不足8(double最大所以以8对其),但是以8对其算8)=24
+		{
+			public:
+				int a;					//int此处4字节
+				char b;					//char此处1字节
+				double c;				//double此处8字节
+				int d;
+		};
+		class B:virtual public A{};		//B的大小为24(A中变量大小)+4(因为A的大小以8对其所以此时4不足8变8)=32
+		
+	注意,上述A被B继承时,由于是64位的系统,所以是
+	
+	
+	如果后来的虚继承后的指向指针的大小大于之前的对其大小,那么继承后的类的对其大小按该虚继承后的指向指针计算.
+	例:
+		下面为64位编译器中的测试
+		class A				//A大小为12字节
+		{
+			char c1;		//1
+			char c2;
+			char c3;
+			char c4;
+			char c5;
+			int a;			//1
+		};
+		class B:virtual public A{};		//B大小为(12+8)(虽然之前为4对其,但是虚继承后的指向指针大小为8字节,此时变为8字节对其)=24.	//注意虽然A算一个整体,但对齐还是按其中变量算
+
+137.注意函数也可以返回函数指针,其格式如下
+	void* (*function(int,int))(int a);
+	该函数返回一个传入两个参数,返回void*类型值的函数指针
+	
+138.注意,=重载函数和拷贝构造函数一样都有不声明和实现时对应的默认代码,但是他们两个是两个东西.
+	虽然return对象时会提示调用拷贝构造函数,但是实际上并没有调用(你的构造函数不满足条件将提示返回错误),这可能和编译器优化有关
+	 同时,return对象算是创建了临时对象,对于临时对象必须要非常的避免建立.
+
+139.对于引用参数而言,只有当对象被传递给一个 const引用参数时,自动转换(该对象类型转换为该参数的const引用类型)才发生.如果传递给一个非const引用参数时,
+	 将会报错并提示无法转换.自动转换时将会调用对应的转换函数(转换函数和要转换的那个类的构造函数都可以)  420760202100607
+	 例:
+		class A
+		{
+			public:
+				//A(B b){}			//拥有对应的转换/构造函数
+			
+		};
+		class B
+		{
+			public:
+				operator A()	//B中对应的转换函数当然也可以
+				{
+					return A();
+				}
+		};
+		void p(const A& a)
+		{
+		}
+		void p2(A& a)
+		{
+		}
+		int main()
+		{
+			B b;
+			p(b);			//可以通过,b通过调用自动转换为A的const引用类型
+			p2(b);			//不允许转换发生
+		}
+	如果对于上述的自动调用相关的转换函数,如果不想对于构造函数有该隐式的转换可以加上explicit关键字
+	例:
+		class A
+		{
+			public:
+				explicit A(B b){}			//拥有对应的转换/构造函数
+			
+		};
+		class B
+		{
+		};
+		void p(const A& a)
+		{
+		}
+		int main()
+		{
+			B b;
+			p(b);			//报错,通过explicit声明后的构造函数不允许隐式转换的发生
+		}
+
+140.c/c++中使用#pragma once也可以保证头文件不被包含多次,而不用复杂的#ifndef,不过该方法不是标准方法而且在gcc3.4之前不支持.
+	一般老实的用ifndef就行
+
+141.return时return的值会根据函数的返回值类型调用对应的转换函数.
+
+142.c++注意函数传入仿函数对象时可能会变成函数声明
+     例:
+		#include <iostream>
+		#include <typeinfo>
+		using namespace std;
+		class A
+		{
+			void operator ()()
+			{
+				cout<<"abcd\n";
+			}
+				
+		};
+		class B
+		{
+			public:
+				B(const A& a)
+				{}
+				B(){}
+				void p(){}
+		};
+
+
+		int main()
+		{
+			B p(A());			//1
+			p.p();
+		}
+	上面1处想声明一个B类型变量p却变成了声明一个
+	 返回类型为B类型,接受单个参数(参数类型是指向 不接受参数同时返回A对象的函数 的指针)的函数
+	 就是相当于把你传进去的A()当成了 A (*p)()
+	解决办法
+		 B p( (A()) );或
+		 B p{ (A()) };
+
+143.对于某些函数,传入引用时可能不会真正的传入引用而是采用了临时变量来传参
+	 对于像是线程建立和std::bind等这种函数就是如此
+	例:
+		void p(A& p)
+		{}
+		A b;
+		std::thread t(p,b);		//此处传入thread对象后会在内部产生一个临时对象存储b的内容,再给函数p,而不是把b引用给函数p来创建线程
+	解决办法
+		使用c++11的引用包装
+			std::ref()		用于传递一般引用
+			std::cref()		用于传递引用和const引用
+		上面可以改为
+		std::thread t(p,std::ref(b));
+
+144.注意c的malloc/free和c++的使用malloc/free为底层的::operator new和::operator delete都是线程安全的.
+	即malloc/free的使用是线程安全的	
+
+145.c++标准库中有许多的空结构体或是空类定义,
+	 但是这并不是无意义的,
+	  因为可以使用这些(继承这些类或是在其他类中包含这些类)来选择特定的函数重载和模板的泛化
+	c++中不仅可以通过传入变量在某个函数或某块代码中选择对应的函数 还可以通过模板泛化和函数重载来让程序自动选择
+		例:
+			template<class T>
+			void a(T a)
+			{
+			}
+
+			template<>
+			void a<int>(int a)
+			{
+			}
+			 
+			 
+			template<>
+			void a<char>(char a)
+			{
+			}
+			a('a')  //调用泛化2
+			a(96) //调用泛化1
+
+146.c++命名空间会在一个代码块中结束,所以请尽量像这样是在一个函数内using一个命名空间使用而避免全局using一个命名空间
+	例
+	{
+	using namespace std;
+	......
+	}//此处后namespace的using声明无了
+
+147.接口冲突
+	在多继承中,如果两个纯虚函数的接口完全一致,则会报错,对于这种情况必须修改其中一个父类的接口.
+	 例:
+		class A
+		{
+			public:
+				virtual int p()=0;
+		};
+		class B
+		{
+			public:
+				virtual double p()=0;			
+		};
+		class C:public A,public B		
+		{
+			public:
+				int p()							//此处会报错并提示重写返回值类型不对,但是对于返回值不同并不算重载,
+				{								//所以在不修改父类和继承的情况下怎么写都是报错(两个虚函数重写都写,或是写其中一个或是都不写)
+					return 2;
+				}
+		};
+	遇到这种只能修改接口,或是将接口做对应实现后,由要继承的类继承然后选择调用
+	例:
+		class A
+		{
+			public:
+				virtual double getPAI()=0;
+		};
+		class B
+		{
+			public:
+				virtual void getPAI()=0;			
+		};
+		struct Aex:public A
+		{
+			double getPAI()
+			{
+				return 3.14;
+			}
+		};
+		struct Bex:public B
+		{
+			void getPAI()
+			{
+				std::cout<<"3.1415926\n";
+			}
+		};
+		class C:public Aex,public Bex
+		{
+			public:
+				void select(int a)
+				{
+					if(a>0)
+						int temp=this->A::getPAI();
+					else
+						this->B::getPAI()
+				}
+		};
+
+148.注意,右值类型往往并不具备常量性质,对于return回来过程中的值经测试也往往不具备常量性质
+	例:
+		#include<iostream>
+		class A
+		{
+			public:
+				A()
+				{
+					flag=5;       
+				}
+			public:
+				int flag;
+		};
+		void p(A&& a)
+		{
+			a.flag=66;
+			std::cout<<a.flag<<std::endl;
+		}
+
+149.对于namespace,允许多个文件同时存在相同的namespace,但是他们的内容不可以重复(std命名空间就是最好的实例)
+
+150.一般来说左加加(++i)可以作为左值,因为他一般返回的是引用,而右++不可以,因为他返回的是一个const的旧值,相当于是一右值
+
+151.c++引用的底层实现是指针,这个可以在不同的编译器下在类或结构体中声明引用后来查看类大小来证明
+	(但是无法实例化该类,一实例化就会出错,除非用c++11的类中的变量在类中的初始化来使用).
+
+152.c++子类继承基类后的变量,底层其实是共用的
+	例:
+		class A
+		{
+			public:
+				int a;
+		};
+		class B:public A
+		{
+
+		};
+		int main()
+		{
+			A a;
+			a.a=5;
+			a.A::a=6;
+			std::cout<<a.a<<std::endl;			//输出6
+			a.a=1;
+			std::cout<<a.A::a<<std::endl;		//输出1
+		}
+
+153.注意C语言中的函数也可以被inline修饰
+	 inline 定义的类的内联函数，函数的代码被放入符号表中，在使用时直接进行替换,像宏一样展开，
+	  没有了调用的开销，效率也很高。
+		关键字inline 必须与函数定义体放在一起才能使函数成为内联，仅将inline 放在函数声明前面不起任何作用。
+		
+		如下风格的函数Foo 不能成为内联函数：
+			inline void Foo(int x, int y); // inline 仅与函数声明放在一起
+			void Foo(int x, int y)
+			{
+			}
+		而如下风格的函数Foo 则成为内联函数：
+			void Foo(int x, int y);
+			inline void Foo(int x, int y) // inline 与函数定义体放在一起
+			{
+			}
