@@ -2687,3 +2687,47 @@ private:
 			inline void Foo(int x, int y) // inline 与函数定义体放在一起
 			{
 			}
+
+154.注意子类中对于之前基类中的变量和函数的访问类型是基于其父类继承基类(包括基类的子类)时这些变量或函数的访问权限
+	对于构造函数也是如此.但是第132条说明和这个没关系,基类的构造函数的调用就是层级式的,所以不能调用基类的构造函数
+例:
+	#include<iostream>
+	class A	
+	{
+		public:
+			int a;
+		public:
+			A(int a):a(a){}
+	};
+	class B:A						
+	{
+		public:
+			int b;
+		public:
+			B(int a):b(a),A(a){}
+
+	};
+	class C:public B
+	{
+		public:
+			int c;
+		public:
+			C(int a):c(a),B(a){}
+			void p()
+			{
+				std::cout<<A::a<<std::endl;				//报错,因为A::a在类B中为private访问权限,故继承后对于C类是不可见的
+														//如果B是public继承的类A则可以通过
+			}
+	};
+	int main()
+	{
+		C *c=new C(1111);
+		c->p();
+	}
+	注意这种情况也可能是访问多层继承中的一个类访问比其备份大的情况
+	假如
+		A<---B<---C<---中间N个类<---D<---E<---F
+	如果类E想要访问类B中的某些变量与函数,则要看这些成员函数或变量经过几层继承后 
+											在类D中的访问权限
+												然后类D被类E继承后
+													经过变化的这些成员函数或变量的访问类型
